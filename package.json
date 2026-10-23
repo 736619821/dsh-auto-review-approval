@@ -42,7 +42,7 @@
     "typecheck": "tsc --noEmit",
     "check": "pnpm run test && pnpm run build",
     "prepublishOnly": "pnpm run check",
-    "prepare": "pnpm run build"
+    "prepare": "tsc --noEmit && tsdown"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -85,7 +85,8 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "^3.18.1",
+    "@deepseek-ai/schemastery": "^3.18.5",
+    "cosmokit": "^1.8.1",
     "zod": "^4.4.3"
   },
   "peerDependencies": {

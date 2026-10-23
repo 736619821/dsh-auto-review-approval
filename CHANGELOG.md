@@ -6,6 +6,16 @@ This project is in developer preview, so releases may still change before
 
 ## [Unreleased]
 
+- Bundle the plugin's own runtime libraries (`@deepseek-ai/schemastery`, `zod`,
+  `cosmokit`) into `lib/index.js`. A profile installs bundles through a
+  `link:`/directory dependency, and pnpm does not install a linked package's
+  dependencies, so activation depended on a local `node_modules` that could be
+  missing or stale and failed with `failed to import: Cannot find package
+  '...node_modules@deepseek-ai\schemastery\index.js'`. Only packages the Host
+  supplies (`@deepseek-ai/cordis`, `@deepseek-ai/dsh-*`) stay external.
+- Run the install-time `prepare` script through the local `tsc`/`tsdown`
+  binaries instead of `pnpm run build`, so installing dependencies no longer
+  needs a `pnpm` executable on `PATH`.
 - Fix absolute `file_path` targets being resolved against the workspace root
   (`/etc/hosts` became `/work/main/etc/hosts`), which made every absolute target
   look aliased and silently deferred it to the human answerer. Relative targets
