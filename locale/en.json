@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Smart Approval",
+    "description": "Fail-closed LLM-assisted approval reviewer with manual, smart, and unattended modes."
+  }
+}

@@ -1,0 +1,6 @@
+# Mounts the host answerer. The package's dsh.client entry contributes an
+# independent automatic-review selector without replacing permission presets.
+
+- insert:
+    - id: smart-approval
+      name: dsh-smart-approval
