@@ -312,7 +312,7 @@ credentials and environment-specific acceptance testing.
   `@deepseek-ai/dsh-client-runtime`; it types against `@deepseek-ai/cordis`,
   `@deepseek-ai/dsh-session/types`, and `@deepseek-ai/dsh-client-ui-session`.
 - Package display resources (`icon.svg`, `locale/en.json`, `locale/zh.json`)
-  are exported for DSH 0.2.x plugin listing.
+  are exported for DSH 0.2.x plugin listing
 
 ## License
 
