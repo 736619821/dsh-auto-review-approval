@@ -1,4 +1,4 @@
-﻿import type { Context } from '@deepseek-ai/cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { ToolCallId as CallId } from '@deepseek-ai/dsh-llm'
 import { SessionSeq } from '@deepseek-ai/dsh-session'
@@ -18,7 +18,7 @@ function smartModeRequest(): ApprovalRequest {
     content: [{ type: 'text', text: '在当前项目运行测试' }],
   } as unknown as UserMessage
   const events = [
-    { type: 'smart-approval/mode', seq: SessionSeq(0), time: 1, data: { mode: 'smart' } },
+    { type: 'auto-review-approval/mode', seq: SessionSeq(0), time: 1, data: { mode: 'smart' } },
     { type: 'turn/start', seq: SessionSeq(1), time: 2, data: { turn: 1 } },
     { type: 'step/start', seq: SessionSeq(2), time: 3, data: { turn: 1, step: 1 } },
     { type: 'user/message', seq: SessionSeq(3), time: 4, surfaceOp: 'append', data: message },
@@ -125,7 +125,7 @@ function storageBench(options: { decisionsPut?: (key: string, value: unknown) =>
 
 describe('plugin entry', () => {
   it('declares the DSH services needed by the prepended answerer', () => {
-    expect(name).toBe('dsh-smart-approval')
+    expect(name).toBe('dsh-auto-review-approval')
     expect(inject).toEqual(['approval', 'llm', 'sessions', 'storageDomain', 'fs'])
     expect(Config).toBeDefined()
     expect('default' in plugin).toBe(false)
@@ -268,7 +268,7 @@ describe('plugin entry', () => {
       append: vi.fn(),
     }
     const legacyEventEvents = [
-      { type: 'smart-approval/mode', seq: SessionSeq(0), time: 1, data: { mode: 'manual' } },
+      { type: 'auto-review-approval/mode', seq: SessionSeq(0), time: 1, data: { mode: 'manual' } },
     ] as unknown as SessionEvent[]
     const legacyEventSelected = {
       id: 'session-legacy-event',
@@ -278,7 +278,7 @@ describe('plugin entry', () => {
       append: vi.fn(),
     }
     const legacySmartEvents = [
-      { type: 'permission/preset', seq: SessionSeq(0), time: 1, data: { preset: 'smart-approval' } },
+      { type: 'permission/preset', seq: SessionSeq(0), time: 1, data: { preset: 'auto-review-approval' } },
     ] as unknown as SessionEvent[]
     const legacySmartPreset = {
       id: 'session-legacy-smart-preset',
@@ -288,7 +288,7 @@ describe('plugin entry', () => {
       append: vi.fn(),
     }
     const revertedEvents = [
-      { type: 'permission/preset', seq: SessionSeq(0), time: 1, data: { preset: 'smart-approval' } },
+      { type: 'permission/preset', seq: SessionSeq(0), time: 1, data: { preset: 'auto-review-approval' } },
       { type: 'permission/preset', seq: SessionSeq(1), time: 2, data: { preset: 'workspace-write' } },
     ] as unknown as SessionEvent[]
     const revertedLegacyPreset = {
@@ -458,7 +458,7 @@ describe('plugin entry', () => {
     const modeCommand = commands.find(entry => entry.name === 'approval-mode')!
 
     const events = [
-      { type: 'smart-approval/mode', seq: SessionSeq(0), time: 1, data: { mode: 'smart' } },
+      { type: 'auto-review-approval/mode', seq: SessionSeq(0), time: 1, data: { mode: 'smart' } },
     ] as unknown as SessionEvent[]
     const session = {
       id: 'session-command',

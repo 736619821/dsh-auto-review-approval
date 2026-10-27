@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsdown'
 
-const PLUGIN_ID = 'dsh-smart-approval'
+const PLUGIN_ID = 'dsh-auto-review-approval'
 
 /**
  * Packages the Host process supplies at runtime. They must stay external so

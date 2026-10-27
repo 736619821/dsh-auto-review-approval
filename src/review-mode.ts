@@ -54,13 +54,13 @@ export const DEFAULT_REVIEW_MODE: ReviewMode = 'smart'
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /** Legacy pre-rc.4 review mode event, retained only for one-way migration. */
-    'smart-approval/mode': { mode: ReviewMode }
+    'auto-review-approval/mode': { mode: ReviewMode }
   }
 }
 
 /** Map one pre-release permission preset to the review mode it previously represented. */
 export function legacyReviewMode(legacyPreset: string): ReviewMode | undefined {
-  if (legacyPreset === 'smart-approval') return 'smart'
+  if (legacyPreset === 'auto-review-approval') return 'smart'
   if (legacyPreset === 'unattended') return 'unattended'
   return undefined
 }
@@ -83,7 +83,7 @@ export function applyReviewModeEvent(
   state: ReviewModeProjectionState,
   event: SessionEvent,
 ): ReviewModeProjectionState {
-  if (event.type === 'smart-approval/mode') {
+  if (event.type === 'auto-review-approval/mode') {
     if (event.data.mode === state.mode && state.origin === 'independent') return state
     return { ...state, mode: event.data.mode, origin: 'independent' }
   }

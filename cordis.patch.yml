@@ -2,5 +2,5 @@
 # independent automatic-review selector without replacing permission presets.
 
 - insert:
-    - id: smart-approval
-      name: dsh-smart-approval
+    - id: dsh-auto-review-approval
+      name: dsh-auto-review-approval

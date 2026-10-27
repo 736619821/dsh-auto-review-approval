@@ -1,6 +1,6 @@
 {
-  "name": "dsh-smart-approval",
-  "version": "0.2.0",
+  "name": "dsh-auto-review-approval",
+  "version": "0.2.1",
   "description": "Fail-closed LLM-assisted approval reviewer for DeepSeek Harness 0.2.x",
   "type": "module",
   "main": "./lib/index.js",

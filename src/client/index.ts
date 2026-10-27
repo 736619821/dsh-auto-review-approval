@@ -30,7 +30,7 @@ export const inject = ['slots', 'remote', 'remote.commands', 'locale']
 
 /** Register the independent selector beside the access-mode control. */
 export function apply(ctx: Context): void {
-  ctx.effect(() => ctx.locale.register('approval-review', { zh, en }), 'smart-approval: browser dictionaries')
+  ctx.effect(() => ctx.locale.register('approval-review', { zh, en }), 'auto-review-approval: browser dictionaries')
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
     name: 'conversation.input.left',
     id: 'approval-review',

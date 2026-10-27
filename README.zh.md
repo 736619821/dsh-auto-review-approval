@@ -45,7 +45,7 @@ Web 输入框底部应显示两个控件：
 
 ```sh
 npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
-dsh plugin --profile web add dsh-smart-approval@0.2.0
+dsh plugin --profile web add dsh-smart-approval@0.2.1
 dsh --profile web --dump-config
 dsh web
 ```

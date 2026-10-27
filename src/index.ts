@@ -34,7 +34,7 @@ const DEFAULT_APPROVAL_LOG_COUNT = 10
 const MAX_TIMER_DELAY_MS = 2_147_483_647
 
 /** Cordis plugin name used in diagnostics. */
-export const name = 'dsh-smart-approval'
+export const name = 'dsh-auto-review-approval'
 
 /** Services that must exist before the answerer registers. */
 export const inject = ['approval', 'llm', 'sessions', 'storageDomain', 'fs']
@@ -59,6 +59,8 @@ export interface Config {
   readonly maxUserContextChars?: number
   /** Maximum persisted decision-audit entries per Session lifecycle; 0 disables the audit. */
   readonly decisionLogSize?: number
+  /** Dangerous file suffix blacklist for write/edit actions; matched suffixes bypass LLM review. */
+  readonly dangerousSuffixBlacklist?: string[]
 }
 
 /** Cordis configuration schema with conservative bounded defaults. */
@@ -72,6 +74,7 @@ export const Config: z<Config> = z.object({
   maxUserMessages: z.number().step(1).min(1).default(DEFAULT_MAX_USER_MESSAGES),
   maxUserContextChars: z.number().step(1).min(1).default(DEFAULT_MAX_USER_CONTEXT_CHARS),
   decisionLogSize: z.number().step(1).min(0).default(DEFAULT_DECISION_LOG_SIZE),
+  dangerousSuffixBlacklist: z.array(z.string()),
 })
 
 /**
@@ -101,7 +104,7 @@ async function mount(
   review: ReturnType<typeof createLlmReviewer>,
 ): Promise<void> {
   const domain = await ctx.storageDomain.open(reviewModeDomainSpec)
-  ctx.effect(() => () => domain.close(), 'smart-approval: close review mode sidecar')
+  ctx.effect(() => () => domain.close(), 'auto-review-approval: close review mode sidecar')
   const modeStore = new ReviewModeStore(domain.table('sessions'))
   const decisionLogSize = config.decisionLogSize ?? DEFAULT_DECISION_LOG_SIZE
   const decisionStore = new DecisionLogStore(domain.table('decisions'), decisionLogSize)
@@ -121,7 +124,7 @@ async function mount(
     try {
       await migrate(session)
     } catch (error) {
-      ctx.logger.warn('smart-approval: failed to persist initial review mode: ' + String(error))
+      ctx.logger.warn('auto-review-approval: failed to persist initial review mode: ' + String(error))
     }
   })
   ctx.inject(['sessionProjections'], (scope) => {
@@ -184,10 +187,11 @@ async function mount(
     inspectFileTarget: createFileTargetInspector(
       (ctx as Context & { fs: FileTargetFileSystem<FileProbeTarget> }).fs,
     ),
+    ...(config.dangerousSuffixBlacklist === undefined ? {} : { dangerousSuffixBlacklist: config.dangerousSuffixBlacklist }),
     review,
     log: record => {
       ctx.logger.info(
-        'smart-approval: ' + record.outcome + ' (' + record.reasonCode + ') for tool ' + JSON.stringify(record.toolName),
+        'auto-review-approval: ' + record.outcome + ' (' + record.reasonCode + ') for tool ' + JSON.stringify(record.toolName),
       )
       if (decisionLogSize === 0) return
       void decisionStore.append(record.session, {

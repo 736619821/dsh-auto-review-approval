@@ -326,13 +326,13 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /** Legacy pre-rc.4 review mode event, retained only for one-way migration. */
-    'smart-approval/mode': {
+    'auto-review-approval/mode': {
       mode: ReviewMode;
     };
   }
 }
 /** Cordis plugin name used in diagnostics. */
-declare const name = "dsh-smart-approval";
+declare const name = "dsh-auto-review-approval";
 /** Services that must exist before the answerer registers. */
 declare const inject: string[];
 /** Runtime configuration for smart approval. */
@@ -355,6 +355,8 @@ interface Config {
   readonly maxUserContextChars?: number;
   /** Maximum persisted decision-audit entries per Session lifecycle; 0 disables the audit. */
   readonly decisionLogSize?: number;
+  /** Dangerous file suffix blacklist for write/edit actions; matched suffixes bypass LLM review. */
+  readonly dangerousSuffixBlacklist?: string[];
 }
 /** Cordis configuration schema with conservative bounded defaults. */
 declare const Config: Schema<Config>;

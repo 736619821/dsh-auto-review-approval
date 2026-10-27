@@ -47,6 +47,8 @@ export interface SmartApprovalHandlerOptions {
     workspaceRoot: string | undefined,
     request: ApprovalRequest,
   ) => Promise<FileTargetInspectionResult>
+  /** Dangerous file suffix blacklist for write/edit actions; defaults to built-in list. */
+  readonly dangerousSuffixBlacklist?: readonly string[]
   /** Review one prepared payload. A null result is an invalid/unavailable review. */
   readonly review: (
     payload: ReviewPayload,
@@ -100,6 +102,7 @@ export function createSmartApprovalHandler(options: SmartApprovalHandlerOptions)
         context.payload.action,
         context.payload.trustedUserContext.messages,
         context.payload.workspaceRoot,
+        options.dangerousSuffixBlacklist,
       )
     } catch {
       return rejectOrHandoff(selectedMode, 'preflight-error', request, next, options)

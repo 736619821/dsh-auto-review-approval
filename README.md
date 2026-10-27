@@ -50,7 +50,7 @@ After installing the DSH CLI globally:
 
 ```sh
 npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
-dsh plugin --profile web add dsh-smart-approval@0.2.0
+dsh plugin --profile web add dsh-smart-approval@0.2.1
 dsh --profile web --dump-config
 dsh web
 ```
@@ -312,7 +312,7 @@ credentials and environment-specific acceptance testing.
   `@deepseek-ai/dsh-client-runtime`; it types against `@deepseek-ai/cordis`,
   `@deepseek-ai/dsh-session/types`, and `@deepseek-ai/dsh-client-ui-session`.
 - Package display resources (`icon.svg`, `locale/en.json`, `locale/zh.json`)
-  are exported for DSH 0.2.x plugin listing
+  are exported for DSH 0.2.x plugin listing.
 
 ## License
 

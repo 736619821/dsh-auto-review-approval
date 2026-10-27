@@ -20,7 +20,7 @@ import {
 const cleanup: (() => Promise<void>)[] = []
 
 async function tempRoot(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'smart-approval-medium-'))
+  const dir = await mkdtemp(join(tmpdir(), 'auto-review-approval-medium-'))
   cleanup.push(async () => rm(dir, { recursive: true, force: true }))
   return dir
 }

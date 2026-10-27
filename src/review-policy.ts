@@ -3,6 +3,166 @@
 import { isAbsolute, resolve } from 'node:path'
 import type { FileReviewAction, FileTargetEvidence } from './review-context.ts'
 
+/** Default dangerous file suffixes that always require human review without LLM. */
+export const DEFAULT_DANGEROUS_SUFFIXES: readonly string[] = [
+  '.env',
+  '.env.local',
+  '.env.development',
+  '.env.production',
+  '.env.test',
+  '.env.example',
+  '.sh',
+  '.bash',
+  '.bashrc',
+  '.bash_profile',
+  '.bash_aliases',
+  '.zsh',
+  '.zshrc',
+  '.zprofile',
+  '.zshenv',
+  '.fish',
+  '.profile',
+  '.bash_history',
+  '.zsh_history',
+  '.npmrc',
+  '.yarnrc',
+  '.yarnrc.yml',
+  '.pypirc',
+  '.pypirc',
+  '.netrc',
+  '.git-credentials',
+  '.gitconfig',
+  '.gitignore_global',
+  '.dockerignore',
+  'Dockerfile',
+  'docker-compose.yml',
+  'docker-compose.yaml',
+  'docker-compose.override.yml',
+  'docker-compose.override.yaml',
+  '.docker/config.json',
+  'Pipfile',
+  'Pipfile.lock',
+  'poetry.lock',
+  'requirements.txt',
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  'bun.lockb',
+  '.editorconfig',
+  '.prettierrc',
+  '.prettierrc.json',
+  '.prettierrc.yaml',
+  '.eslintrc',
+  '.eslintrc.json',
+  '.eslintrc.js',
+  '.eslintrc.cjs',
+  '.stylelintrc',
+  '.stylelintrc.json',
+  '.editorconfig',
+  'Makefile',
+  'Rakefile',
+  'Gemfile',
+  'Gemfile.lock',
+  'Cargo.toml',
+  'Cargo.lock',
+  'go.mod',
+  'go.sum',
+  'CMakeLists.txt',
+  'meson.build',
+  'build.gradle',
+  'build.gradle.kts',
+  'settings.gradle',
+  'settings.gradle.kts',
+  'pom.xml',
+  'stack.yaml',
+  'package.json',
+  'tsconfig.json',
+  'jsconfig.json',
+  'vite.config.ts',
+  'vite.config.js',
+  'vitest.config.ts',
+  'vitest.config.js',
+  'next.config.js',
+  'next.config.mjs',
+  'nuxt.config.ts',
+  '.htaccess',
+  '.htpasswd',
+  'nginx.conf',
+  'apache2.conf',
+  'httpd.conf',
+  'uwsgi.ini',
+  'supervisord.conf',
+  ' supervisord.conf',
+  'systemd.service',
+  'systemd.timer',
+  'systemd.path',
+  'cron.d',
+  'cron.daily',
+  'cron.hourly',
+  'crontab',
+  '.ssh/authorized_keys',
+  '.ssh/config',
+  '.ssh/id_rsa',
+  '.ssh/id_ed25519',
+  '.ssh/id_ecdsa',
+  '.aws/credentials',
+  '.aws/config',
+  '.netrc',
+  'known_hosts',
+  'authorized_keys',
+  'id_rsa',
+  'id_ed25519',
+  'id_ecdsa',
+  'id_dsa',
+  'personal_access_token',
+  '.config/gcloud/credentials',
+  '.config/gcloud/configurations/config_default',
+  'application.yml',
+  'application.yaml',
+  'application.json',
+  'config.yaml',
+  'config.yml',
+  'config.json',
+  'secrets.yaml',
+  'secrets.yml',
+  'secrets.json',
+  'credentials.json',
+  'service-account.json',
+  'google_credentials.json',
+  '.flaskenv',
+  '.env.docker',
+  '.env.prod',
+  '.env.staging',
+  '.env.dev',
+  'docker-entrypoint.sh',
+  'entrypoint.sh',
+  'start.sh',
+  'setup.sh',
+  'install.sh',
+  'deploy.sh',
+  'Makefile',
+]
+
+/** Normalized suffix set for O(1) lookups. */
+const dangerousSuffixSet = new Set<string>(DEFAULT_DANGEROUS_SUFFIXES)
+
+/** Whether a file path matches any dangerous suffix in the configured list. */
+export function matchesDangerousSuffix(filePath: string, blacklist: readonly string[]): boolean {
+  if (blacklist === DEFAULT_DANGEROUS_SUFFIXES || blacklist.length === 0) {
+    // Fast path: use the pre-built set
+    const lower = filePath.toLowerCase()
+    for (const suffix of dangerousSuffixSet) {
+      if (lower.endsWith(suffix)) return true
+    }
+    return false
+  }
+  const lower = filePath.toLowerCase()
+  for (const suffix of blacklist) {
+    if (lower.endsWith(suffix.toLowerCase())) return true
+  }
+  return false
+}
+
 /** Stable reasons an approval model may use when allowing one request. */
 export const ALLOW_REASON_CODES = [
   'explicit-user-scope',
@@ -19,6 +179,7 @@ export const HUMAN_REASON_CODES = [
   'system-change',
   'network-or-install',
   'scope-not-authorized',
+  'high-risk-suffix',
 ] as const
 
 /** Stable reasons an approval model may use only for clearly malicious requests. */
@@ -149,12 +310,14 @@ const OPAQUE_SHELL = /(?:\bpython(?:3(?:\.\d+)?)?\b[^\n;&|]*\s-c(?:\s|$)|\bnode\
  * @param action - parsed tool action being considered.
  * @param userRequests - bounded recent direct-user text that would reach the reviewer.
  * @param workspaceRoot - session workspace used to resolve relative shell workdirs.
+ * @param dangerousSuffixBlacklist - optional dangerous file suffix blacklist; defaults to built-in list.
  * @returns a non-safe classification for mode-specific handling, or `null` for model review.
  */
 export function preflightApproval(
   action: ApprovalAction,
   userRequests: readonly string[] = [],
   workspaceRoot?: string,
+  dangerousSuffixBlacklist: readonly string[] = DEFAULT_DANGEROUS_SUFFIXES,
 ): ReviewerDecision | null {
   if (containsSensitiveMaterial(action.arguments)
     || containsSensitiveMaterial(userRequests)
@@ -164,7 +327,15 @@ export function preflightApproval(
   if (/^(?:delete|remove|unlink|rmdir)$/i.test(action.toolName)) {
     return { decision: 'human', reasonCode: 'destructive' }
   }
-  if (action.toolName === 'write' || action.toolName === 'edit') return null
+  if (action.toolName === 'write' || action.toolName === 'edit') {
+    // Check dangerous suffix blacklist before model review
+    const filePath = extractFilePath(action.arguments)
+    if (filePath !== undefined && dangerousSuffixBlacklist.length > 0
+      && matchesDangerousSuffix(filePath, dangerousSuffixBlacklist)) {
+      return { decision: 'human', reasonCode: 'high-risk-suffix' }
+    }
+    return null
+  }
   if (action.toolName !== 'bash' && action.toolName !== 'pwsh') {
     return { decision: 'human', reasonCode: 'uncertain' }
   }
@@ -187,6 +358,13 @@ export function preflightApproval(
     return { decision: 'human', reasonCode: 'credential-risk' }
   }
   return null
+}
+
+/** Extract the file_path from a write/edit action's arguments. */
+function extractFilePath(arguments_: unknown): string | undefined {
+  if (!isRecord(arguments_)) return undefined
+  const filePath = arguments_['file_path']
+  return typeof filePath === 'string' ? filePath : undefined
 }
 
 /**

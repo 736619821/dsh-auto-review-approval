@@ -62,21 +62,21 @@ export function resolveLlmReviewerConfig(input: LlmReviewerConfigInput): LlmRevi
   const hasProvider = input.provider !== undefined
   const hasModel = input.model !== undefined
   if (hasProvider !== hasModel) {
-    throw new Error('smart-approval: reviewer provider and model must be configured together')
+    throw new Error('auto-review-approval: reviewer provider and model must be configured together')
   }
   if (input.provider !== undefined && input.provider.trim() === '') {
-    throw new Error('smart-approval: reviewer provider must be non-empty')
+    throw new Error('auto-review-approval: reviewer provider must be non-empty')
   }
   if (input.model !== undefined && input.model.trim() === '') {
-    throw new Error('smart-approval: reviewer model must be non-empty')
+    throw new Error('auto-review-approval: reviewer model must be non-empty')
   }
   const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const maxTokens = input.maxTokens ?? DEFAULT_MAX_TOKENS
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMER_DELAY_MS) {
-    throw new Error(`smart-approval: timeoutMs must be an integer from 1 to ${MAX_TIMER_DELAY_MS}`)
+    throw new Error(`auto-review-approval: timeoutMs must be an integer from 1 to ${MAX_TIMER_DELAY_MS}`)
   }
   if (!Number.isInteger(maxTokens) || maxTokens <= 0) {
-    throw new Error('smart-approval: maxTokens must be a positive integer')
+    throw new Error('auto-review-approval: maxTokens must be a positive integer')
   }
   return {
     ...input.provider === undefined ? {} : { provider: input.provider },
@@ -117,7 +117,7 @@ export function createLlmReviewer(llm: LlmStreamClient, config: LlmReviewerConfi
 
     const timeout = new AbortController()
     const timer = setTimeout(
-      () => timeout.abort(new Error(`smart-approval reviewer timed out after ${config.timeoutMs}ms`)),
+      () => timeout.abort(new Error(`auto-review-approval reviewer timed out after ${config.timeoutMs}ms`)),
       config.timeoutMs,
     )
     const signal = request.signal === undefined
@@ -175,7 +175,7 @@ export function createLlmReviewer(llm: LlmStreamClient, config: LlmReviewerConfi
     } finally {
       clearTimeout(timer)
       if (!completed) {
-        if (!timeout.signal.aborted) timeout.abort(new Error('smart-approval reviewer closed'))
+        if (!timeout.signal.aborted) timeout.abort(new Error('auto-review-approval reviewer closed'))
         if (iterator !== undefined) closeIterator(iterator)
       }
     }

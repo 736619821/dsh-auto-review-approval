@@ -1,11 +1,52 @@
 import { describe, expect, it } from 'vitest'
 import {
   decisionFromAssessment,
+  matchesDangerousSuffix,
+  DEFAULT_DANGEROUS_SUFFIXES,
   parseReviewerOutput,
   preflightApproval,
   preflightFileTarget,
 } from '../src/review-policy.ts'
 import type { FileTargetEvidence, FileWriteReviewAction } from '../src/review-context.ts'
+
+describe('matchesDangerousSuffix', () => {
+  it('returns true for paths ending with default dangerous suffixes', () => {
+    expect(matchesDangerousSuffix('/work/project/.env', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.bashrc', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/Dockerfile', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/docker-compose.yml', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/tsconfig.json', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.ssh/authorized_keys', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.aws/credentials', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.env.local', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.env.production', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+  })
+
+  it('returns false for safe paths', () => {
+    expect(matchesDangerousSuffix('/work/project/README.md', DEFAULT_DANGEROUS_SUFFIXES)).toBe(false)
+    expect(matchesDangerousSuffix('/work/project/src/index.ts', DEFAULT_DANGEROUS_SUFFIXES)).toBe(false)
+    expect(matchesDangerousSuffix('/work/project/data.csv', DEFAULT_DANGEROUS_SUFFIXES)).toBe(false)
+    expect(matchesDangerousSuffix('/work/project/package.json', DEFAULT_DANGEROUS_SUFFIXES)).toBe(false)
+  })
+
+  it('matches case-insensitively', () => {
+    expect(matchesDangerousSuffix('/work/project/.ENV', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.BASHRC', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/DOCKERFILE', DEFAULT_DANGEROUS_SUFFIXES)).toBe(true)
+  })
+
+  it('works with custom blacklist', () => {
+    const custom = ['.secret', '.key', 'id_rsa']
+    expect(matchesDangerousSuffix('/work/project/.secret', custom)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.key', custom)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/id_rsa', custom)).toBe(true)
+    expect(matchesDangerousSuffix('/work/project/.env', custom)).toBe(false)
+  })
+
+  it('returns false for empty blacklist', () => {
+    expect(matchesDangerousSuffix('/work/project/.env', [])).toBe(false)
+  })
+})
 
 describe('parseReviewerOutput', () => {
   it('accepts an exact low-risk benign assessment', () => {
@@ -259,6 +300,94 @@ describe('preflightApproval', () => {
         nested: Array.from({ length: 150_000 }, () => 0),
       },
     }, [], '/work/project')).toBeNull()
+  })
+
+  describe('dangerous suffix blacklist', () => {
+    it.each([
+      '/work/project/.env',
+      '/work/project/.env.local',
+      '/work/project/.env.production',
+      '/work/project/.bashrc',
+      '/work/project/.bash_profile',
+      '/work/project/.zshrc',
+      '/work/project/.profile',
+      '/work/project/.npmrc',
+      '/work/project/.git-credentials',
+      '/work/project/Dockerfile',
+      '/work/project/docker-compose.yml',
+      '/work/project/.docker/config.json',
+      '/work/project/Makefile',
+      '/work/project/package-lock.json',
+      '/work/project/yarn.lock',
+      '/work/project/pnpm-lock.yaml',
+      '/work/project/tsconfig.json',
+      '/work/project/.htaccess',
+      '/work/project/supervisord.conf',
+      '/work/project/.ssh/authorized_keys',
+      '/work/project/.aws/credentials',
+      '/work/project/entrypoint.sh',
+      '/work/project/deploy.sh',
+    ])('blocks dangerous suffix for write: %s', (filePath) => {
+      expect(preflightApproval({
+        toolName: 'write',
+        arguments: { file_path: filePath, content: 'data' },
+      })).toEqual({ decision: 'human', reasonCode: 'high-risk-suffix' })
+    })
+
+    it.each([
+      '/work/project/.env',
+      '/work/project/.bashrc',
+      '/work/project/Dockerfile',
+      '/work/project/docker-compose.yml',
+    ])('blocks dangerous suffix for edit: %s', (filePath) => {
+      expect(preflightApproval({
+        toolName: 'edit',
+        arguments: { file_path: filePath, old_string: 'old', new_string: 'new' },
+      })).toEqual({ decision: 'human', reasonCode: 'high-risk-suffix' })
+    })
+
+    it('allows non-blacklisted file paths through to model review', () => {
+      expect(preflightApproval({
+        toolName: 'write',
+        arguments: { file_path: '/work/project/README.md', content: '# Hello' },
+      })).toBeNull()
+      expect(preflightApproval({
+        toolName: 'edit',
+        arguments: { file_path: '/work/project/src/index.ts', old_string: 'a', new_string: 'b' },
+      })).toBeNull()
+    })
+
+    it('allows non-blacklisted paths even when blacklist is non-empty', () => {
+      expect(preflightApproval({
+        toolName: 'write',
+        arguments: { file_path: '/work/project/data.csv', content: 'a,b' },
+      }, [], undefined, ['.env', '.sh', '.bashrc'])).toBeNull()
+    })
+
+    it('matches custom blacklist suffixes case-insensitively', () => {
+      expect(preflightApproval({
+        toolName: 'write',
+        arguments: { file_path: '/work/project/.ENV', content: 'data' },
+      }, [], undefined, ['.env'])).toEqual({ decision: 'human', reasonCode: 'high-risk-suffix' })
+      expect(preflightApproval({
+        toolName: 'write',
+        arguments: { file_path: '/work/project/.BASHRC', content: 'data' },
+      }, [], undefined, ['.bashrc'])).toEqual({ decision: 'human', reasonCode: 'high-risk-suffix' })
+    })
+
+    it('skips blacklist check when empty blacklist is provided', () => {
+      expect(preflightApproval({
+        toolName: 'write',
+        arguments: { file_path: '/work/project/.env', content: 'data' },
+      }, [], undefined, [])).toBeNull()
+    })
+
+    it('uses default blacklist when no blacklist argument is provided', () => {
+      expect(preflightApproval({
+        toolName: 'write',
+        arguments: { file_path: '/work/project/.env', content: 'data' },
+      })).toEqual({ decision: 'human', reasonCode: 'high-risk-suffix' })
+    })
   })
 })
 
