@@ -1,8 +1,8 @@
-# dsh-smart-approval
+# dsh-auto-review-approval
 
 [English](README.md) | 中文 | [更新记录](CHANGELOG.md)
 
-`dsh-smart-approval` 是
+`dsh-auto-review-approval` 是
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的失败关闭审批插件。
 它把“访问权限”和“自动审查”拆成两个互不耦合的会话设置：DSH 继续管理
 Read Only、Workspace Write、Full access，插件在 `Workspace Write` 旁边增加独立的自动审查选择框。
@@ -45,7 +45,7 @@ Web 输入框底部应显示两个控件：
 
 ```sh
 npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
-dsh plugin --profile web add dsh-smart-approval@0.2.1
+dsh plugin --profile web add dsh-auto-review-approval@0.2.1
 dsh --profile web --dump-config
 dsh web
 ```
@@ -53,7 +53,7 @@ dsh web
 一次性运行：
 
 ```sh
-npx @deepseek-ai/dsh@0.2.1-alpha.1 plugin --profile web add dsh-smart-approval@0.2.0
+npx @deepseek-ai/dsh@0.2.1-alpha.1 plugin --profile web add dsh-auto-review-approval@0.2.1
 npx @deepseek-ai/dsh@0.2.1-alpha.1 --profile web --dump-config
 npx @deepseek-ai/dsh@0.2.1-alpha.1 web
 ```
@@ -72,7 +72,7 @@ dsh plugin --profile web add .
 从 DeepSeek Harness 源码 checkout 运行：
 
 ```sh
-pnpm dsh plugin --profile web add /absolute/path/to/dsh-smart-approval
+pnpm dsh plugin --profile web add /absolute/path/to/dsh-auto-review-approval
 pnpm dsh --profile web --dump-config
 pnpm dsh --profile web
 ```
@@ -80,7 +80,7 @@ pnpm dsh --profile web
 从 GitHub 安装时固定已审查的 commit：
 
 ```sh
-dsh plugin --profile web add github:TingRuDeng/dsh-smart-approval#<commit-sha>
+dsh plugin --profile web add github:TingRuDeng/dsh-auto-review-approval#<commit-sha>
 ```
 
 Git 依赖会运行本包的 `prepare` 构建。pnpm 10 及以上默认阻止依赖构建脚本；首次从 Git
@@ -93,14 +93,14 @@ Git 依赖会运行本包的 `prepare` 构建。pnpm 10 及以上默认阻止依
 dsh --profile web --dump-config
 ```
 
-配置中应出现 `dsh-smart-approval` bundle 和 `smart-approval` 插件行；permission 配置仍应只有
+配置中应出现 `dsh-auto-review-approval` bundle 和 `auto-review-approval` 插件行；permission 配置仍应只有
 DSH 原生的 Read Only、Workspace Write、Full access。启动 Web 后，自动审查选择框应独立显示在
 权限选择器旁边。
 
 卸载：
 
 ```sh
-dsh plugin --profile web remove dsh-smart-approval
+dsh plugin --profile web remove dsh-auto-review-approval
 ```
 
 ## 使用与切换模式
@@ -122,7 +122,7 @@ dsh plugin --profile web remove dsh-smart-approval
 尚未明确选择模式的会话使用配置的 `defaultMode`，默认是 `smart`。明确选择的模式保存在 DSH
 `storage-domain` 的会话伴随记录中；未选择的会话继续跟随当前默认值，确保修改配置后审批行为与
 浏览器投影一致。插件不会向不可移植的 Session 事件日志追加自定义事件。从早期预览版升级时，
-旧的 `smart-approval/mode` 事件只读迁移到伴随记录；更早的 `smart-approval` 与 `unattended` 权限
+旧的 `auto-review-approval/mode` 事件只读迁移到伴随记录；更早的 `auto-review-approval` 与 `unattended` 权限
 preset 分别迁移为 `smart` 与 `unattended`。迁移不会修改原权限事件。
 
 ## 工作原理
@@ -156,7 +156,7 @@ preset 分别迁移为 `smart` 与 `unattended`。迁移不会修改原权限事
 默认复用当前会话路由。需要独立审核路由时，在 profile 的 `cordis.patch.yml` 中覆盖插件行：
 
 ```yaml
-- id: smart-approval
+- id: dsh-auto-review-approval
   config:
     defaultMode: smart
     reviewerProvider: your-provider-route

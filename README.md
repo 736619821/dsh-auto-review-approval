@@ -1,8 +1,8 @@
-# dsh-smart-approval
+# dsh-auto-review-approval
 
 English | [中文](README.zh.md) | [Changelog](CHANGELOG.md)
 
-`dsh-smart-approval` is a fail-closed approval plugin for
+`dsh-auto-review-approval` is a fail-closed approval plugin for
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It separates
 access permission from automatic review: DSH continues to own Read Only,
 Workspace Write, and Full access, while this plugin adds an independent review
@@ -50,7 +50,7 @@ After installing the DSH CLI globally:
 
 ```sh
 npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
-dsh plugin --profile web add dsh-smart-approval@0.2.1
+dsh plugin --profile web add dsh-auto-review-approval@0.2.1
 dsh --profile web --dump-config
 dsh web
 ```
@@ -58,7 +58,7 @@ dsh web
 For one-off execution:
 
 ```sh
-npx @deepseek-ai/dsh@0.2.1-alpha.1 plugin --profile web add dsh-smart-approval@0.2.0
+npx @deepseek-ai/dsh@0.2.1-alpha.1 plugin --profile web add dsh-auto-review-approval@0.2.1
 npx @deepseek-ai/dsh@0.2.1-alpha.1 --profile web --dump-config
 npx @deepseek-ai/dsh@0.2.1-alpha.1 web
 ```
@@ -78,7 +78,7 @@ dsh plugin --profile web add .
 From a DeepSeek Harness source checkout:
 
 ```sh
-pnpm dsh plugin --profile web add /absolute/path/to/dsh-smart-approval
+pnpm dsh plugin --profile web add /absolute/path/to/dsh-auto-review-approval
 pnpm dsh --profile web --dump-config
 pnpm dsh --profile web
 ```
@@ -86,7 +86,7 @@ pnpm dsh --profile web
 Pin a reviewed GitHub commit:
 
 ```sh
-dsh plugin --profile web add github:TingRuDeng/dsh-smart-approval#<commit-sha>
+dsh plugin --profile web add github:TingRuDeng/dsh-auto-review-approval#<commit-sha>
 ```
 
 Git dependencies run this package's `prepare` build. pnpm 10 and later block
@@ -101,15 +101,16 @@ built output and do not need that permission.
 dsh --profile web --dump-config
 ```
 
-The result should contain the `dsh-smart-approval` bundle and `smart-approval`
-plugin row. The permission configuration should still contain only DSH's native
+The result should contain the `dsh-auto-review-approval` bundle and
+`auto-review-approval` plugin row. The permission configuration should still
+contain only DSH's native
 Read Only, Workspace Write, and Full access choices. After Web starts, the
 automatic-review selector should appear separately beside access permission.
 
 Remove the plugin with:
 
 ```sh
-dsh plugin --profile web remove dsh-smart-approval
+dsh plugin --profile web remove dsh-auto-review-approval
 ```
 
 ## Use and switch modes
@@ -137,9 +138,9 @@ Sessions without an explicit selection use `defaultMode`, which defaults to
 sidecar; an unselected session continues to follow the configured default so
 the host decision and browser projection stay aligned after configuration
 changes. The plugin never appends a non-portable event to the Session log.
-During an upgrade from an earlier preview, legacy `smart-approval/mode` events
-are read only for one-way sidecar migration; older `smart-approval` and
-`unattended` permission presets migrate to `smart` and `unattended`. Migration
+During an upgrade from an earlier preview, legacy `auto-review-approval/mode`
+events are read only for one-way sidecar migration; older `auto-review-approval`
+and `unattended` permission presets migrate to `smart` and `unattended`. Migration
 does not modify permission events.
 
 ## How it works
@@ -190,7 +191,7 @@ The current session route performs review by default. To use an independent
 route, override the plugin row in the profile's `cordis.patch.yml`:
 
 ```yaml
-- id: smart-approval
+- id: dsh-auto-review-approval
   config:
     defaultMode: smart
     reviewerProvider: your-provider-route
